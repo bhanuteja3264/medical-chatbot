@@ -1,14 +1,33 @@
 const twilio = require('twilio');
 
-const client = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
+// Lazy initialization of Twilio client
+let client = null;
+
+const getClient = () => {
+  if (!client) {
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    
+    if (!accountSid || !authToken || !accountSid.startsWith('AC')) {
+      console.warn('⚠️ Twilio credentials not configured - SMS features disabled');
+      return null;
+    }
+    
+    client = twilio(accountSid, authToken);
+  }
+  return client;
+};
 
 // Send SMS function
 const sendSMS = async ({ to, message }) => {
   try {
-    const result = await client.messages.create({
+    const twilioClient = getClient();
+    if (!twilioClient) {
+      console.log('SMS skipped (Twilio not configured):', message.substring(0, 50) + '...');
+      return { success: false, error: 'Twilio not configured' };
+    }
+    
+    const result = await twilioClient.messages.create({
       body: message,
       from: process.env.TWILIO_PHONE_NUMBER,
       to
