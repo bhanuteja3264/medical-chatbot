@@ -45,39 +45,40 @@ passport.use(new LocalStrategy(
   }
 ));
 
-// Google OAuth Strategy
-passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.GOOGLE_CALLBACK_URL
-  },
-  async (accessToken, refreshToken, profile, done) => {
-    try {
-      // Check if user already exists
-      let user = await User.findOne({ googleId: profile.id });
+// Google OAuth Strategy - Only initialize if credentials are provided
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  passport.use(new GoogleStrategy({
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: process.env.GOOGLE_CALLBACK_URL
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        // Check if user already exists
+        let user = await User.findOne({ googleId: profile.id });
 
-      if (user) {
-        return done(null, user);
-      }
+        if (user) {
+          return done(null, user);
+        }
 
-      // Check if email already exists
-      user = await User.findOne({ email: profile.emails[0].value });
+        // Check if email already exists
+        user = await User.findOne({ email: profile.emails[0].value });
 
-      if (user) {
-        // Link Google account to existing user
-        user.googleId = profile.id;
-        user.isVerified = true;
-        await user.save();
-        return done(null, user);
-      }
+        if (user) {
+          // Link Google account to existing user
+          user.googleId = profile.id;
+          user.isVerified = true;
+          await user.save();
+          return done(null, user);
+        }
 
-      // Create new user - will need to set role later
-      user = await User.create({
-        googleId: profile.id,
-        email: profile.emails[0].value,
-        name: profile.displayName,
-        role: 'patient', // Default role, can be changed
-        isVerified: true
+        // Create new user - will need to set role later
+        user = await User.create({
+          googleId: profile.id,
+          email: profile.emails[0].value,
+          name: profile.displayName,
+          role: 'patient', // Default role, can be changed
+          isVerified: true
       });
 
       done(null, user);
@@ -85,6 +86,10 @@ passport.use(new GoogleStrategy({
       done(error, null);
     }
   }
-));
+  ));
+  console.log('✅ Google OAuth configured');
+} else {
+  console.log('⚠️ Google OAuth not configured - GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET missing');
+}
 
 module.exports = passport;
