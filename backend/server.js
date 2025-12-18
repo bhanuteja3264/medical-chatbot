@@ -5,10 +5,8 @@ const session = require('express-session');
 const passport = require('passport');
 const path = require('path');
 
-// Load environment variables
-if (process.env.NODE_ENV !== 'production') {
-  require('dotenv').config({ path: path.join(__dirname, '../.env') });
-}
+// Load environment variables - always load dotenv for backend folder
+require('dotenv').config();
 
 const app = express();
 
@@ -23,6 +21,8 @@ const allowedOrigins = [
   'http://localhost:3000'
 ].filter(Boolean);
 
+console.log('🌐 Allowed CORS origins:', allowedOrigins);
+
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (mobile apps, curl, etc.)
@@ -30,15 +30,16 @@ app.use(cors({
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
+      console.warn('CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true
 }));
 
-// Session middleware
+// Session middleware - use default secret if not provided
 app.use(session({
-  secret: process.env.SESSION_SECRET,
+  secret: process.env.SESSION_SECRET || 'default-session-secret-change-in-production',
   resave: false,
   saveUninitialized: false,
   cookie: { 
@@ -52,12 +53,20 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Database connection
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log('MongoDB connected successfully'))
-.catch(err => console.error('MongoDB connection error:', err));
+const connectDB = async () => {
+  try {
+    if (!process.env.MONGODB_URI) {
+      throw new Error('MONGODB_URI environment variable is not set');
+    }
+    await mongoose.connect(process.env.MONGODB_URI);
+    console.log('✅ MongoDB connected successfully');
+  } catch (err) {
+    console.error('❌ MongoDB connection error:', err.message);
+    process.exit(1);
+  }
+};
+
+connectDB();
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -67,6 +76,22 @@ app.use('/api/upload', require('./routes/upload'));
 
 // Static files for uploads
 app.use('/uploads', express.static('uploads'));
+
+// Root route
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: 'Medical AI Assistant API',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      auth: '/api/auth',
+      chat: '/api/chat',
+      doctor: '/api/doctor',
+      upload: '/api/upload'
+    }
+  });
+});
 
 // Health check
 app.get('/health', (req, res) => {

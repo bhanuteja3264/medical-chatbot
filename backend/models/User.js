@@ -41,25 +41,16 @@ const userSchema = new mongoose.Schema({
   resetPasswordExpire: Date,
   // Doctor specific fields
   specialization: {
-    type: String,
-    required: function() {
-      return this.role === 'doctor';
-    }
+    type: String
   },
   licenseNumber: {
     type: String,
-    required: function() {
-      return this.role === 'doctor';
-    },
     unique: true,
     sparse: true
   },
   doctorConsent: {
     type: Boolean,
-    default: false,
-    required: function() {
-      return this.role === 'doctor';
-    }
+    default: false
   },
   doctorConsentDate: {
     type: Date
@@ -72,9 +63,6 @@ const userSchema = new mongoose.Schema({
   },
   abhaId: {
     type: String,
-    required: function() {
-      return this.role === 'patient';
-    },
     unique: true,
     sparse: true,
     trim: true
@@ -84,14 +72,11 @@ const userSchema = new mongoose.Schema({
   },
   gender: {
     type: String,
-    enum: ['male', 'female', 'other']
+    enum: ['male', 'female', 'other', '']
   },
   dataConsent: {
     type: Boolean,
-    default: false,
-    required: function() {
-      return this.role === 'patient';
-    }
+    default: false
   },
   consentDate: {
     type: Date
