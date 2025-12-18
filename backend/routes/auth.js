@@ -27,8 +27,11 @@ router.post('/register', async (req, res) => {
       phone,
       specialization, 
       licenseNumber,
+      doctorConsent,
       dateOfBirth,
-      gender 
+      gender,
+      abhaId,
+      dataConsent
     } = req.body;
 
     // Validate required fields
@@ -69,9 +72,18 @@ router.post('/register', async (req, res) => {
     if (role === 'doctor') {
       userData.specialization = specialization;
       userData.licenseNumber = licenseNumber;
+      userData.doctorConsent = doctorConsent;
+      if (doctorConsent) {
+        userData.doctorConsentDate = new Date();
+      }
     } else if (role === 'patient') {
       userData.dateOfBirth = dateOfBirth;
       userData.gender = gender;
+      userData.abhaId = abhaId;
+      userData.dataConsent = dataConsent;
+      if (dataConsent) {
+        userData.consentDate = new Date();
+      }
     }
 
     // Generate verification token
